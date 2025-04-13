@@ -1,3 +1,8 @@
+# %% [markdown]
+# 自動で逆伝搬させる仕組みづくり
+#
+# "Define-by-run"とは
+
 # %%
 import numpy as np
 
@@ -17,7 +22,7 @@ class Variable:
         if f is not None:
             x = f.input  # 2. Get the function's input
             x.grad = f.backward(self.grad)  # 3. Call the function's backward
-            x.backward()
+            x.backward()  # recursively
 
 
 # %%
@@ -72,6 +77,15 @@ x = Variable(np.array(0.5))
 a = A(x)
 b = B(a)
 y = C(b)
+
+# %%
+# 辿り方
+assert y.creator == C
+assert y.creator.input == b
+assert y.creator.input.creator == B
+assert y.creator.input.creator.input == a
+assert y.creator.input.creator.input.creator == A
+assert y.creator.input.creator.input.creator.input == x
 
 # %%
 # backward
