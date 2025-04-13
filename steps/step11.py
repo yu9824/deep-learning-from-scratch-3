@@ -1,4 +1,9 @@
+# %% [markdown]
+# 複数の引数を取れるように拡張する
+
 # %%
+from collections.abc import Iterable
+from typing import Union
 import numpy as np
 
 
@@ -31,7 +36,7 @@ class Variable:
 
 
 # %%
-def as_array(x):
+def as_array(x: Union[np.ndarray, np.generic]) -> np.ndarray:
     if np.isscalar(x):
         return np.array(x)
     return x
@@ -39,7 +44,7 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, inputs):
+    def __call__(self, inputs: Iterable[Variable]) -> list[Variable]:
         xs = [x.data for x in inputs]  # Get data from Variable
         ys = self.forward(xs)
         outputs = [Variable(as_array(y)) for y in ys]  # Wrap data
@@ -50,16 +55,16 @@ class Function:
         self.outputs = outputs
         return outputs
 
-    def forward(self, xs):
+    def forward(self, xs: Iterable[np.ndarray]) -> tuple[np.ndarray]:
         raise NotImplementedError()
 
-    def backward(self, gys):
+    def backward(self, gys: Iterable[np.ndarray]) -> tuple[np.ndarray]:
         raise NotImplementedError()
 
 
 # %%
 class Add(Function):
-    def forward(self, xs):
+    def forward(self, xs: Iterable[np.ndarray]) -> tuple[np.ndarray]:
         x0, x1 = xs
         y = x0 + x1
         return (y,)
