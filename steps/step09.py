@@ -1,10 +1,14 @@
+# %% [markdown]
+# 使いやすくする
+
 # %%
+from typing import Optional
 import numpy as np
 
 
 # %%
 class Variable:
-    def __init__(self, data: np.ndarray) -> None:
+    def __init__(self, data: Optional[np.ndarray]) -> None:
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError("{} is not supported".format(type(data)))
@@ -18,7 +22,9 @@ class Variable:
 
     def backward(self):
         if self.grad is None:
-            self.grad = np.ones_like(self.data)
+            self.grad = np.ones_like(
+                self.data
+            )  # データ型を揃えるため。（複数の変数を利用することを想定しているという観点もあるのでは？）
 
         funcs = [self.creator]
         while funcs:
@@ -42,6 +48,7 @@ class Function:
     def __call__(self, input: Variable) -> Variable:
         x = input.data
         y = self.forward(x)
+        # 処理によってはスカラーとして帰ってくる。ndarrayで統一する。
         output = Variable(as_array(y))
         output.set_creator(self)
         self.input = input
@@ -80,11 +87,13 @@ class Exp(Function):
 
 
 # %%
+# overwrap for easy use
 def square(x):
     return Square()(x)
 
 
 # %%
+# overwrap for easy use
 def exp(x):
     return Exp()(x)
 
