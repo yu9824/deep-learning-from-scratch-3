@@ -1,4 +1,6 @@
 # %%
+from collections.abc import Callable
+
 import numpy as np
 
 
@@ -25,7 +27,7 @@ class Function:
 # %%
 class Square(Function):
     def forward(self, x):
-        return x ** 2
+        return x**2
 
 
 # %%
@@ -35,7 +37,9 @@ class Exp(Function):
 
 
 # %%
-def numerical_diff(f, x, eps=1e-4):
+def numerical_diff(
+    f: Callable[[Variable], Variable], x: Variable, eps: float = 1e-4
+):
     x0 = Variable(x.data - eps)
     x1 = Variable(x.data + eps)
     y0 = f(x0)
@@ -50,8 +54,11 @@ dy = numerical_diff(f, x)
 print(dy)
 
 
+# %% [markdown]
+# 合成関数の微分
+
 # %%
-def f(x):
+def f(x: Variable) -> Variable:
     A = Square()
     B = Exp()
     C = Square()
@@ -62,3 +69,8 @@ def f(x):
 x = Variable(np.array(0.5))
 dy = numerical_diff(f, x)
 print(dy)
+
+# %% [markdown]
+# 数値微分は桁落ちによって誤差が大きくなる場合あり。
+#
+# → バックプロパゲーション・勾配確認
