@@ -6,13 +6,13 @@ import numpy as np
 
 # %%
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data: np.ndarray) -> None:
         self.data = data
 
 
 # %%
 class Function:
-    def __call__(self, input):
+    def __call__(self, input: Variable) -> Variable:
         x = input.data
         y = self.forward(x)
         output = Variable(y)
@@ -56,6 +56,7 @@ print(dy)
 
 # %% [markdown]
 # 合成関数の微分
+
 
 # %%
 def f(x: Variable) -> Variable:

@@ -4,14 +4,14 @@ import numpy as np
 
 # %%
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data: np.ndarray) -> None:
         self.data = data
         self.grad = None
 
 
 # %%
 class Function:
-    def __call__(self, input):
+    def __call__(self, input: Variable) -> Variable:
         x = input.data
         y = self.forward(x)
         output = Variable(y)
@@ -28,7 +28,7 @@ class Function:
 # %%
 class Square(Function):
     def forward(self, x):
-        y = x ** 2
+        y = x**2
         return y
 
     def backward(self, gy):

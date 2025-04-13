@@ -1,7 +1,8 @@
 # %%
-import weakref
-import numpy as np
 import contextlib
+import weakref
+
+import numpy as np
 
 
 # %%
@@ -22,15 +23,15 @@ def using_config(name, value):
 
 # %%
 def no_grad():
-    return using_config('enable_backprop', False)
+    return using_config("enable_backprop", False)
 
 
 # %%
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data: np.ndarray) -> None:
         if data is not None:
             if not isinstance(data, np.ndarray):
-                raise TypeError('{} is not supported'.format(type(data)))
+                raise TypeError("{} is not supported".format(type(data)))
 
         self.data = data
         self.grad = None
@@ -115,7 +116,7 @@ class Function:
 # %%
 class Square(Function):
     def forward(self, x):
-        y = x ** 2
+        y = x**2
         return y
 
     def backward(self, gy):
@@ -155,7 +156,7 @@ print(x0.grad, x1.grad)  # 2.0 1.0
 
 
 # %%
-with using_config('enable_backprop', False):
+with using_config("enable_backprop", False):
     x = Variable(np.array(2.0))
     y = square(x)
 
