@@ -1,3 +1,6 @@
+# %% [markdown]
+# 手動でバックプロパゲーションを実行
+
 # %%
 import numpy as np
 
@@ -66,3 +69,6 @@ b.grad = C.backward(y.grad)
 a.grad = B.backward(b.grad)
 x.grad = A.backward(a.grad)
 print(x.grad)
+
+# %% [markdown]
+# step04の値と大体一致
