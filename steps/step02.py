@@ -10,7 +10,7 @@ class Variable:
 
 # %%
 class Function:
-    def __call__(self, input):
+    def __call__(self, input: Variable) -> Variable:
         x = input.data
         y = self.forward(x)
         output = Variable(y)
@@ -23,7 +23,7 @@ class Function:
 # %%
 class Square(Function):
     def forward(self, x):
-        return x ** 2
+        return x**2
 
 
 # %%
