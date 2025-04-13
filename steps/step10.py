@@ -1,4 +1,8 @@
 # %%
+# テストの実行方法
+# !python3 -m unittest step10.py
+
+# %%
 import unittest
 
 import numpy as np
