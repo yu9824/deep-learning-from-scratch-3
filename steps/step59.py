@@ -1,3 +1,4 @@
+# %%
 if '__file__' in globals():
     import os, sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -8,15 +9,18 @@ from dezero import Model
 import dezero.functions as F
 import dezero.layers as L
 
+# %%
 # Hyperparameters
 max_epoch = 100
 hidden_size = 100
 bptt_length = 30
 
+# %%
 train_set = dezero.datasets.SinCurve(train=True)
 seqlen = len(train_set)
 
 
+# %%
 class SimpleRNN(Model):
     def __init__(self, hidden_size, out_size):
         super().__init__()
@@ -32,9 +36,11 @@ class SimpleRNN(Model):
         return y
 
 
+# %%
 model = SimpleRNN(hidden_size, 1)
 optimizer = dezero.optimizers.Adam().setup(model)
 
+# %%
 # Start training.
 for epoch in range(max_epoch):
     model.reset_state()
@@ -55,17 +61,20 @@ for epoch in range(max_epoch):
     avg_loss = float(loss.data) / count
     print('| epoch %d | loss %f' % (epoch + 1, avg_loss))
 
+# %%
 # Plot
 xs = np.cos(np.linspace(0, 4 * np.pi, 1000))
 model.reset_state()
 pred_list = []
 
+# %%
 with dezero.no_grad():
     for x in xs:
         x = np.array(x).reshape(1, 1)
         y = model(x)
         pred_list.append(float(y.data))
 
+# %%
 plt.plot(np.arange(len(xs)), xs, label='y=cos(x)')
 plt.plot(np.arange(len(xs)), pred_list, label='predict')
 plt.xlabel('x')

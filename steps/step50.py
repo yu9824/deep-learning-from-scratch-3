@@ -1,3 +1,4 @@
+# %%
 if '__file__' in globals():
     import os, sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -8,19 +9,23 @@ from dezero import DataLoader
 from dezero.models import MLP
 
 
+# %%
 max_epoch = 300
 batch_size = 30
 hidden_size = 10
 lr = 1.0
 
+# %%
 train_set = dezero.datasets.Spiral(train=True)
 test_set = dezero.datasets.Spiral(train=False)
 train_loader = DataLoader(train_set, batch_size)
 test_loader = DataLoader(test_set, batch_size, shuffle=False)
 
+# %%
 model = MLP((hidden_size, 3))
 optimizer = optimizers.SGD(lr).setup(model)
 
+# %%
 for epoch in range(max_epoch):
     sum_loss, sum_acc = 0, 0
 

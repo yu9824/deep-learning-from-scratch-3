@@ -1,6 +1,8 @@
+# %%
 import numpy as np
 
 
+# %%
 class Variable:
     def __init__(self, data):
         if data is not None:
@@ -28,12 +30,14 @@ class Variable:
                 funcs.append(x.creator)
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         xs = [x.data for x in inputs]
@@ -55,16 +59,19 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
         return y
 
 
+# %%
 def add(x0, x1):
     return Add()(x0, x1)
 
 
+# %%
 x0 = Variable(np.array(2))
 x1 = Variable(np.array(3))
 y = add(x0, x1)

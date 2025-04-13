@@ -1,12 +1,15 @@
+# %%
 import weakref
 import numpy as np
 import contextlib
 
 
+# %%
 class Config:
     enable_backprop = True
 
 
+# %%
 @contextlib.contextmanager
 def using_config(name, value):
     old_value = getattr(Config, name)
@@ -17,10 +20,12 @@ def using_config(name, value):
         setattr(Config, name, old_value)
 
 
+# %%
 def no_grad():
     return using_config('enable_backprop', False)
 
 
+# %%
 class Variable:
     __array_priority__ = 200
 
@@ -103,18 +108,21 @@ class Variable:
                     y().grad = None  # y is weakref
 
 
+# %%
 def as_variable(obj):
     if isinstance(obj, Variable):
         return obj
     return Variable(obj)
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         inputs = [as_variable(x) for x in inputs]
@@ -141,6 +149,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
@@ -150,11 +159,13 @@ class Add(Function):
         return gy, gy
 
 
+# %%
 def add(x0, x1):
     x1 = as_array(x1)
     return Add()(x0, x1)
 
 
+# %%
 class Mul(Function):
     def forward(self, x0, x1):
         y = x0 * x1
@@ -165,22 +176,27 @@ class Mul(Function):
         return gy * x1, gy * x0
 
 
+# %%
 def mul(x0, x1):
     x1 = as_array(x1)
     return Mul()(x0, x1)
 
 
+# %%
 Variable.__add__ = add
 Variable.__radd__ = add
 Variable.__mul__ = mul
 Variable.__rmul__ = mul
 
+# %%
 x = Variable(np.array(2.0))
 y = x + np.array(3.0)
 print(y)
 
+# %%
 y = x + 3.0
 print(y)
 
+# %%
 y = 3.0 * x + 1.0
 print(y)

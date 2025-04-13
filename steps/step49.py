@@ -1,3 +1,4 @@
+# %%
 if '__file__' in globals():
     import os, sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -9,18 +10,22 @@ from dezero import optimizers
 from dezero.models import MLP
 
 
+# %%
 max_epoch = 300
 batch_size = 30
 hidden_size = 10
 lr = 1.0
 
+# %%
 train_set = dezero.datasets.Spiral(train=True)
 model = MLP((hidden_size, 3))
 optimizer = optimizers.SGD(lr).setup(model)
 
+# %%
 data_size = len(train_set)
 max_iter = math.ceil(data_size / batch_size)
 
+# %%
 for epoch in range(max_epoch):
     # Shuffle index for data
     index = np.random.permutation(data_size)

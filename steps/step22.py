@@ -1,12 +1,15 @@
+# %%
 import weakref
 import numpy as np
 import contextlib
 
 
+# %%
 class Config:
     enable_backprop = True
 
 
+# %%
 @contextlib.contextmanager
 def using_config(name, value):
     old_value = getattr(Config, name)
@@ -17,10 +20,12 @@ def using_config(name, value):
         setattr(Config, name, old_value)
 
 
+# %%
 def no_grad():
     return using_config('enable_backprop', False)
 
 
+# %%
 class Variable:
     __array_priority__ = 200
 
@@ -103,18 +108,21 @@ class Variable:
                     y().grad = None  # y is weakref
 
 
+# %%
 def as_variable(obj):
     if isinstance(obj, Variable):
         return obj
     return Variable(obj)
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         inputs = [as_variable(x) for x in inputs]
@@ -141,6 +149,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
@@ -150,11 +159,13 @@ class Add(Function):
         return gy, gy
 
 
+# %%
 def add(x0, x1):
     x1 = as_array(x1)
     return Add()(x0, x1)
 
 
+# %%
 class Mul(Function):
     def forward(self, x0, x1):
         y = x0 * x1
@@ -165,11 +176,13 @@ class Mul(Function):
         return gy * x1, gy * x0
 
 
+# %%
 def mul(x0, x1):
     x1 = as_array(x1)
     return Mul()(x0, x1)
 
 
+# %%
 class Neg(Function):
     def forward(self, x):
         return -x
@@ -178,10 +191,12 @@ class Neg(Function):
         return -gy
 
 
+# %%
 def neg(x):
     return Neg()(x)
 
 
+# %%
 class Sub(Function):
     def forward(self, x0, x1):
         y = x0 - x1
@@ -191,16 +206,19 @@ class Sub(Function):
         return gy, -gy
 
 
+# %%
 def sub(x0, x1):
     x1 = as_array(x1)
     return Sub()(x0, x1)
 
 
+# %%
 def rsub(x0, x1):
     x1 = as_array(x1)
     return sub(x1, x0)
 
 
+# %%
 class Div(Function):
     def forward(self, x0, x1):
         y = x0 / x1
@@ -213,16 +231,19 @@ class Div(Function):
         return gx0, gx1
 
 
+# %%
 def div(x0, x1):
     x1 = as_array(x1)
     return Div()(x0, x1)
 
 
+# %%
 def rdiv(x0, x1):
     x1 = as_array(x1)
     return div(x1, x0)
 
 
+# %%
 class Pow(Function):
     def __init__(self, c):
         self.c = c
@@ -239,10 +260,12 @@ class Pow(Function):
         return gx
 
 
+# %%
 def pow(x, c):
     return Pow(c)(x)
 
 
+# %%
 Variable.__add__ = add
 Variable.__radd__ = add
 Variable.__mul__ = mul
@@ -254,18 +277,22 @@ Variable.__truediv__ = div
 Variable.__rtruediv__ = rdiv
 Variable.__pow__ = pow
 
+# %%
 x = Variable(np.array(2.0))
 y = -x
 print(y)  # variable(-2.0)
 
+# %%
 y1 = 2.0 - x
 y2 = x - 1.0
 print(y1)  # variable(0.0)
 print(y2)  # variable(1.0)
 
+# %%
 y = 3.0 / x
 print(y)  # variable(1.5)
 
+# %%
 y = x ** 3
 y.backward()
 print(y)  # variable(8.0)

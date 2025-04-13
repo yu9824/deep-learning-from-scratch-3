@@ -1,12 +1,15 @@
+# %%
 import weakref
 import numpy as np
 import contextlib
 
 
+# %%
 class Config:
     enable_backprop = True
 
 
+# %%
 @contextlib.contextmanager
 def using_config(name, value):
     old_value = getattr(Config, name)
@@ -17,10 +20,12 @@ def using_config(name, value):
         setattr(Config, name, old_value)
 
 
+# %%
 def no_grad():
     return using_config('enable_backprop', False)
 
 
+# %%
 class Variable:
     def __init__(self, data, name=None):
         if data is not None:
@@ -101,12 +106,14 @@ class Variable:
                     y().grad = None  # y is weakref
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         xs = [x.data for x in inputs]
@@ -131,6 +138,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
@@ -140,10 +148,12 @@ class Add(Function):
         return gy, gy
 
 
+# %%
 def add(x0, x1):
     return Add()(x0, x1)
 
 
+# %%
 class Mul(Function):
     def forward(self, x0, x1):
         y = x0 * x1
@@ -154,21 +164,26 @@ class Mul(Function):
         return gy * x1, gy * x0
 
 
+# %%
 def mul(x0, x1):
     return Mul()(x0, x1)
 
 
+# %%
 Variable.__add__ = add
 Variable.__mul__ = mul
 
+# %%
 a = Variable(np.array(3.0))
 b = Variable(np.array(2.0))
 c = Variable(np.array(1.0))
 
+# %%
 # y = add(mul(a, b), c)
 y = a * b + c
 y.backward()
 
+# %%
 print(y)
 print(a.grad)
 print(b.grad)

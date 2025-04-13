@@ -1,7 +1,9 @@
+# %%
 import weakref
 import numpy as np
 
 
+# %%
 class Variable:
     def __init__(self, data):
         if data is not None:
@@ -52,12 +54,14 @@ class Variable:
                     add_func(x.creator)
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         xs = [x.data for x in inputs]
@@ -80,6 +84,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Square(Function):
     def forward(self, x):
         y = x ** 2
@@ -91,10 +96,12 @@ class Square(Function):
         return gx
 
 
+# %%
 def square(x):
     return Square()(x)
 
 
+# %%
 for i in range(10):
     x = Variable(np.random.randn(10000))  # big data
     y = square(square(square(x)))

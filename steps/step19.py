@@ -1,12 +1,15 @@
+# %%
 import weakref
 import numpy as np
 import contextlib
 
 
+# %%
 class Config:
     enable_backprop = True
 
 
+# %%
 @contextlib.contextmanager
 def using_config(name, value):
     old_value = getattr(Config, name)
@@ -17,10 +20,12 @@ def using_config(name, value):
         setattr(Config, name, old_value)
 
 
+# %%
 def no_grad():
     return using_config('enable_backprop', False)
 
 
+# %%
 class Variable:
     def __init__(self, data, name=None):
         if data is not None:
@@ -101,12 +106,14 @@ class Variable:
                     y().grad = None  # y is weakref
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, *inputs):
         xs = [x.data for x in inputs]
@@ -131,6 +138,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Square(Function):
     def forward(self, x):
         y = x ** 2
@@ -142,10 +150,12 @@ class Square(Function):
         return gx
 
 
+# %%
 def square(x):
     return Square()(x)
 
 
+# %%
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
@@ -155,13 +165,16 @@ class Add(Function):
         return gy, gy
 
 
+# %%
 def add(x0, x1):
     return Add()(x0, x1)
 
 
+# %%
 x = Variable(np.array([[1, 2, 3], [4, 5, 6]]))
 x.name = 'x'
 
+# %%
 print(x.name)
 print(x.shape)
 print(x)

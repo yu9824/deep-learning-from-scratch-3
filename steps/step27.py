@@ -1,3 +1,4 @@
+# %%
 if '__file__' in globals():
     import os, sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -7,6 +8,7 @@ from dezero import Variable, Function
 from dezero.utils import plot_dot_graph
 
 
+# %%
 class Sin(Function):
     def forward(self, x):
         y = np.sin(x)
@@ -18,10 +20,12 @@ class Sin(Function):
         return gx
 
 
+# %%
 def sin(x):
     return Sin()(x)
 
 
+# %%
 x = Variable(np.array(np.pi / 4))
 y = sin(x)
 y.backward()
@@ -30,6 +34,7 @@ print(y.data)
 print(x.grad)
 
 
+# %%
 def my_sin(x, threshold=0.0001):
     y = 0
     for i in range(100000):
@@ -41,6 +46,7 @@ def my_sin(x, threshold=0.0001):
     return y
 
 
+# %%
 x = Variable(np.array(np.pi / 4))
 y = my_sin(x)  # , threshold=1e-150)
 y.backward()
@@ -48,6 +54,7 @@ print('--- approximate sin ---')
 print(y.data)
 print(x.grad)
 
+# %%
 x.name = 'x'
 y.name = 'y'
 plot_dot_graph(y, verbose=False, to_file='my_sin.png')

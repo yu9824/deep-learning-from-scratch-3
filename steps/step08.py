@@ -1,6 +1,8 @@
+# %%
 import numpy as np
 
 
+# %%
 class Variable:
     def __init__(self, data):
         self.data = data
@@ -21,6 +23,7 @@ class Variable:
                 funcs.append(x.creator)
 
 
+# %%
 class Function:
     def __call__(self, input):
         x = input.data
@@ -38,6 +41,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Square(Function):
     def forward(self, x):
         y = x ** 2
@@ -49,6 +53,7 @@ class Square(Function):
         return gx
 
 
+# %%
 class Exp(Function):
     def forward(self, x):
         y = np.exp(x)
@@ -60,15 +65,18 @@ class Exp(Function):
         return gx
 
 
+# %%
 A = Square()
 B = Exp()
 C = Square()
 
+# %%
 x = Variable(np.array(0.5))
 a = A(x)
 b = B(a)
 y = C(b)
 
+# %%
 # backward
 y.grad = np.array(1.0)
 y.backward()

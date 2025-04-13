@@ -1,7 +1,9 @@
+# %%
 import unittest
 import numpy as np
 
 
+# %%
 class Variable:
     def __init__(self, data):
         if data is not None:
@@ -29,12 +31,14 @@ class Variable:
                 funcs.append(x.creator)
 
 
+# %%
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
 
 
+# %%
 class Function:
     def __call__(self, input):
         x = input.data
@@ -52,6 +56,7 @@ class Function:
         raise NotImplementedError()
 
 
+# %%
 class Square(Function):
     def forward(self, x):
         y = x ** 2
@@ -63,10 +68,12 @@ class Square(Function):
         return gx
 
 
+# %%
 def square(x):
     return Square()(x)
 
 
+# %%
 def numerical_diff(f, x, eps=1e-4):
     x0 = Variable(x.data - eps)
     x1 = Variable(x.data + eps)
@@ -75,6 +82,7 @@ def numerical_diff(f, x, eps=1e-4):
     return (y1.data - y0.data) / (2 * eps)
 
 
+# %%
 class SquareTest(unittest.TestCase):
     def test_forward(self):
         x = Variable(np.array(2.0))
