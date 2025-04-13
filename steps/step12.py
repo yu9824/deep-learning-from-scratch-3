@@ -39,7 +39,7 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, *inputs):
+    def __call__(self, *inputs: Variable):
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
