@@ -13,6 +13,8 @@ class Variable:
         self.creator = func
 
     def backward(self):
+        # 再帰 → while
+        # メモリや拡張性の観点で優位
         funcs = [self.creator]
         while funcs:
             f = funcs.pop()  # 1. Get a function
