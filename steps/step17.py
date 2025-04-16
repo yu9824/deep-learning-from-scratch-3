@@ -64,7 +64,7 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, *inputs):
+    def __call__(self, *inputs: Variable):
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
@@ -75,6 +75,10 @@ class Function:
         for output in outputs:
             output.set_creator(self)
         self.inputs = inputs
+        # weakref.ref: 弱参照
+        # 参照カウントを増やすことなく参照する
+        # 循環参照部分 ( `Variable.creator` と `Fucntion.outputs` ) を解消する
+        # メモリ解放を円滑にするため
         self.outputs = [weakref.ref(output) for output in outputs]
         return outputs if len(outputs) > 1 else outputs[0]
 
