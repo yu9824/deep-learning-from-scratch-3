@@ -32,6 +32,8 @@ class Variable:
                 gxs = (gxs,)
 
             for x, gx in zip(f.inputs, gxs):
+                # 同じ変数を2つの引数にしたときに正しく計算できない問題を解決
+                # すでにgradが入っているときは足す
                 if x.grad is None:
                     x.grad = gx
                 else:
@@ -93,7 +95,22 @@ print(x.grad)
 
 
 # %%
+# x = Variable(np.array(3.0))  # or x.cleargrad()
+y = add(add(x, x), x)
+y.backward()
+print(x.grad)
+# 正しくない！元々gradが入っているときに足す仕様に変えたから。
+
+# %%
+# xを再定義してあげるか
 x = Variable(np.array(3.0))  # or x.cleargrad()
+y = add(add(x, x), x)
+y.backward()
+print(x.grad)
+
+# %%
+# xの勾配を初期化すればOK。
+x.cleargrad()
 y = add(add(x, x), x)
 y.backward()
 print(x.grad)
