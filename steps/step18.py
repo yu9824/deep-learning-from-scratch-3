@@ -1,3 +1,9 @@
+# %% [markdown]
+# メモリ使用量を減らす
+#
+# 1. 不要な微分を消去する仕組みを導入する
+# 2. 「逆伝搬が必要ない場合のモード」を用意する
+
 # %%
 import contextlib
 import weakref
@@ -8,11 +14,24 @@ import numpy as np
 # %%
 class Config:
     enable_backprop = True
+    """
+    - True: 学習時 (微分計算のため逆伝搬させる)
+    - False: 推論時 (逆伝搬しない → メモリを節約)
+    """
 
 
 # %%
 @contextlib.contextmanager
 def using_config(name, value):
+    """with文を使ってconfigを一時的に変更する
+
+    Parameters
+    ----------
+    name : str
+        attribute name
+    value : Any
+        value
+    """
     old_value = getattr(Config, name)
     setattr(Config, name, value)
     try:
@@ -46,6 +65,13 @@ class Variable:
         self.grad = None
 
     def backward(self, retain_grad=False):
+        """
+
+        Parameters
+        ----------
+        retain_grad : bool, optional
+            勾配を保持するかどうか, by default False
+        """
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
@@ -78,6 +104,7 @@ class Variable:
 
             if not retain_grad:
                 for y in f.outputs:
+                    # 勾配を消去
                     y().grad = None  # y is weakref
 
 
@@ -90,7 +117,7 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, *inputs):
+    def __call__(self, *inputs: Variable):
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
@@ -98,6 +125,9 @@ class Function:
         outputs = [Variable(as_array(y)) for y in ys]
 
         if Config.enable_backprop:
+            # self.inputsが必要なのは微分を計算 (逆伝搬) するときだけ。
+            # 逆伝搬しないときには保持させないことでメモリを節約する
+            # self.generationとself.inputs
             self.generation = max([x.generation for x in inputs])
             for output in outputs:
                 output.set_creator(self)
@@ -126,7 +156,7 @@ class Square(Function):
 
 
 # %%
-def square(x):
+def square(x: Variable) -> Variable:
     return Square()(x)
 
 
@@ -141,7 +171,7 @@ class Add(Function):
 
 
 # %%
-def add(x0, x1):
+def add(x0: Variable, x1: Variable) -> Variable:
     return Add()(x0, x1)
 
 
@@ -164,3 +194,17 @@ with using_config("enable_backprop", False):
 with no_grad():
     x = Variable(np.array(2.0))
     y = square(x)
+
+# %%
+x = Variable(np.array(2.0))
+y = square(x)
+y.backward()
+x.grad
+
+# %%
+with no_grad():
+    x = Variable(np.array(2.0))
+    y = square(x)
+
+    # 逆伝搬用の計算をしていないのでエラーになる
+    y.backward()
