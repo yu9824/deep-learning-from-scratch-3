@@ -1,4 +1,6 @@
 # %%
+from typing import Union
+
 import numpy as np
 
 
@@ -26,12 +28,19 @@ class Variable:
             self.grad = np.ones_like(self.data)
 
         funcs = []
+        # 分岐で同じ親を登録しないようにするため。
+        # 独自で定義したclassから生成したinstanceは、hashable ← 知らなかった。
+        # 非明示的にobjectを継承しており、object.__hash__が定義されているから。
+        # hashableなのでsetで重複管理できる。
         seen_set = set()
 
         def add_func(f):
+            # idを確認すべくprint
+            print(f)
             if f not in seen_set:
                 funcs.append(f)
                 seen_set.add(f)
+                # 世代でソート (世代が一番大きいやつを取り出したいだけなので、必ずしもソートする必要はない)
                 funcs.sort(key=lambda x: x.generation)
 
         add_func(self.creator)
@@ -62,12 +71,14 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, *inputs):
+    def __call__(
+        self, *inputs: Variable
+    ) -> Union[tuple[Variable, ...], Variable]:
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
             ys = (ys,)
-        outputs = [Variable(as_array(y)) for y in ys]
+        outputs = tuple(Variable(as_array(y)) for y in ys)
 
         self.generation = max([x.generation for x in inputs])
         for output in outputs:
@@ -96,7 +107,7 @@ class Square(Function):
 
 
 # %%
-def square(x):
+def square(x: Variable) -> Variable:
     return Square()(x)
 
 
@@ -111,7 +122,7 @@ class Add(Function):
 
 
 # %%
-def add(x0, x1):
+def add(x0: Variable, x1: Variable) -> Variable:
     return Add()(x0, x1)
 
 
