@@ -1,4 +1,6 @@
 # %%
+from typing import Union
+
 import numpy as np
 
 
@@ -44,12 +46,14 @@ def as_array(x):
 
 # %%
 class Function:
-    def __call__(self, *inputs):
+    def __call__(
+        self, *inputs: Variable
+    ) -> Union[tuple[Variable, ...], Variable]:
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
             ys = (ys,)
-        outputs = [Variable(as_array(y)) for y in ys]
+        outputs = tuple(Variable(as_array(y)) for y in ys)
 
         for output in outputs:
             output.set_creator(self)
@@ -77,7 +81,7 @@ class Square(Function):
 
 
 # %%
-def square(x):
+def square(x: Variable) -> Variable:
     f = Square()
     return f(x)
 
@@ -93,7 +97,7 @@ class Add(Function):
 
 
 # %%
-def add(x0, x1):
+def add(x0: Variable, x1: Variable) -> Variable:
     return Add()(x0, x1)
 
 
