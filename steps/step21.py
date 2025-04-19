@@ -1,3 +1,6 @@
+# %% [markdown]
+# `Variable` を `np.ndarray` やスカラーと演算できるようにする
+
 # %%
 import weakref
 import numpy as np
@@ -22,17 +25,72 @@ def using_config(name, value):
 
 # %%
 def no_grad():
-    return using_config('enable_backprop', False)
+    return using_config("enable_backprop", False)
+
+
+# %% [markdown]
+# ### 二項演算子の実装について
+#
+# 二項演算子における呼び出される順番の話。足し算などの四則演算など。
+#
+# 以下の場合にどのような順番でメソッドが呼ばれるのか。
+#
+# ```python
+# a + b
+# ```
+#
+# 基本的には、
+#
+# 1. `a.__add__` が呼ばれる
+# 2. (1. で `NotImplemented` が返ってきたときには) `b.__radd__` が呼ばれる
+#
+# たとえば、以下の例では、 1 (int) の `__add__` が呼ばれるが、 `np.ndarray` との演算は定義されておらず、 `NotImplemented` が帰ってくる。なので、 `np.ndarray.__radd__` が呼ばれる。結果演算できる。
+#
+# ```python
+# 1 + np.array(1.0)
+# ```
+
+# %% [markdown]
+# ### \_\_array_priority\_\_について
+#
+# 今回の `Variable` のように `np.ndarray` との演算をしたい場合、に困る。
+# `np.ndarray.__add__` が強すぎる。 全然 `NotImplemented` にならないため、`np.ndarray` にされて演算されてしまう。
+#
+# なので、それもoverwrapしたい場合は、 `__array_priority__` というattributeを設定して、ある程度大きな値にする ( `np.ndarray.__array_priority__` のデフォルトは0 )。
+
+# %%
+class MyArray:
+    __array_priority__ = 0
+
+    def __array__(self, dtype=None):
+        return np.array([10, 20, 30])
+
+    def __radd__(self, other):
+        print("MyArray.__radd__ called")
+        return "My custom add result"
+
+
+# 優先度の設定（デフォルトは0）
+a = np.array([1, 2, 3])
+b = MyArray()
+
+print(f"{a + b}")
+
+# 優先度を高く設定
+MyArray.__array_priority__ = 1000
+
+print(f"{a + b}")
 
 
 # %%
 class Variable:
+    # np.ndarray との演算でこっちの演算子を優先させる
     __array_priority__ = 200
 
     def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, np.ndarray):
-                raise TypeError('{} is not supported'.format(type(data)))
+                raise TypeError("{} is not supported".format(type(data)))
 
         self.data = data
         self.name = name
@@ -61,9 +119,9 @@ class Variable:
 
     def __repr__(self):
         if self.data is None:
-            return 'variable(None)'
-        p = str(self.data).replace('\n', '\n' + ' ' * 9)
-        return 'variable(' + p + ')'
+            return "variable(None)"
+        p = str(self.data).replace("\n", "\n" + " " * 9)
+        return "variable(" + p + ")"
 
     def set_creator(self, func):
         self.creator = func
@@ -125,6 +183,7 @@ def as_array(x):
 # %%
 class Function:
     def __call__(self, *inputs):
+        # as_variableをつかうことで全部 `Variable` に揃える
         inputs = [as_variable(x) for x in inputs]
 
         xs = [x.data for x in inputs]
@@ -181,6 +240,9 @@ def mul(x0, x1):
     x1 = as_array(x1)
     return Mul()(x0, x1)
 
+
+# %%
+type((3.0).__mul__(np.array(3.0)))
 
 # %%
 Variable.__add__ = add
