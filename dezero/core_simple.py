@@ -1,6 +1,12 @@
-import weakref
-import numpy as np
+from __future__ import annotations
+
+import abc
 import contextlib
+import weakref
+from abc import abstractmethod
+from typing import Any, Optional, Union, cast
+
+import numpy as np
 
 
 # =============================================================================
@@ -11,7 +17,7 @@ class Config:
 
 
 @contextlib.contextmanager
-def using_config(name, value):
+def using_config(name: str, value: Any):
     old_value = getattr(Config, name)
     setattr(Config, name, value)
     try:
@@ -21,25 +27,57 @@ def using_config(name, value):
 
 
 def no_grad():
-    return using_config('enable_backprop', False)
+    return using_config("enable_backprop", False)
 
 
 # =============================================================================
 # Variable / Function
 # =============================================================================
 class Variable:
-    __array_priority__ = 200
+    __array_priority__: float = 200.0
 
-    def __init__(self, data, name=None):
+    def __add__(self, *args):
+        return add(self, *args)
+
+    def __radd__(self, *args):
+        return add(self, *args)
+
+    def __mul__(self, *args):
+        return mul(self, *args)
+
+    def __rmul__(self, *args):
+        return mul(self, *args)
+
+    def __neg__(self, *args):
+        return neg(self, *args)
+
+    def __sub__(self, *args):
+        return sub(self, *args)
+
+    def __rsub__(self, *args):
+        return rsub(self, *args)
+
+    def __truediv__(self, *args):
+        return div(self, *args)
+
+    def __rtruediv__(self, *args):
+        return rdiv(self, *args)
+
+    def __pow__(self, *args):
+        return pow(self, *args)
+
+    def __init__(
+        self, data: Optional[np.ndarray], name: Optional[str] = None
+    ) -> None:
         if data is not None:
             if not isinstance(data, np.ndarray):
-                raise TypeError('{} is not supported'.format(type(data)))
+                raise TypeError("{} is not supported".format(type(data)))
 
         self.data = data
         self.name = name
-        self.grad = None
-        self.creator = None
-        self.generation = 0
+        self.grad: Optional[Union[np.generic, np.ndarray]] = None
+        self.creator: Optional[Function] = None
+        self.generation: int = 0
 
     @property
     def shape(self):
@@ -62,36 +100,44 @@ class Variable:
 
     def __repr__(self):
         if self.data is None:
-            return 'variable(None)'
-        p = str(self.data).replace('\n', '\n' + ' ' * 9)
-        return 'variable(' + p + ')'
+            return "variable(None)"
+        p = str(self.data).replace("\n", "\n" + " " * 9)
+        return "variable(" + p + ")"
 
-    def set_creator(self, func):
+    def set_creator(self, func: Function):
         self.creator = func
         self.generation = func.generation + 1
 
     def cleargrad(self):
         self.grad = None
 
-    def backward(self, retain_grad=False):
+    def backward(self, retain_grad: bool = False):
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
-        funcs = []
-        seen_set = set()
+        funcs: list[Function] = []
+        seen_set: set[Function] = set()
 
-        def add_func(f):
+        def add_func(f: Function):
             if f not in seen_set:
                 funcs.append(f)
                 seen_set.add(f)
                 funcs.sort(key=lambda x: x.generation)
 
+        assert isinstance(self.creator, Function)
         add_func(self.creator)
 
         while funcs:
             f = funcs.pop()
-            gys = [output().grad for output in f.outputs]  # output is weakref
-            gxs = f.backward(*gys)
+
+            # weakrefが切れたときにNoneが返ってくる。
+            # その型チェックは困難なので今回は諦める
+            gys = [
+                output().grad  # type: ignore[union-attr]
+                for output in f.outputs
+            ]  # output is weakref
+
+            gxs = f.backward(*gys)  # type: ignore[arg-type]
             if not isinstance(gxs, tuple):
                 gxs = (gxs,)
 
@@ -99,36 +145,49 @@ class Variable:
                 if x.grad is None:
                     x.grad = gx
                 else:
-                    x.grad = x.grad + gx
+                    x.grad = x.grad + gx  # type: ignore[operator]
 
                 if x.creator is not None:
                     add_func(x.creator)
 
             if not retain_grad:
                 for y in f.outputs:
-                    y().grad = None  # y is weakref
+                    # weakrefが切れたときにNoneが返ってくる。
+                    # その型チェックは困難なので今回は諦める
+                    y().grad = None  # type: ignore[union-attr] # y is weakref
 
 
-def as_variable(obj):
+def as_variable(obj: Any) -> Variable:
     if isinstance(obj, Variable):
         return obj
     return Variable(obj)
 
 
-def as_array(x):
+def as_array(x: Union[np.generic, np.ndarray]) -> np.ndarray:
     if np.isscalar(x):
         return np.array(x)
+    else:
+        assert isinstance(x, np.ndarray)  # for type checking
     return x
 
 
-class Function:
-    def __call__(self, *inputs):
-        inputs = [as_variable(x) for x in inputs]
+class Function(abc.ABC):
+    def __call__(
+        self, *inputs: Union[Variable, np.ndarray, np.generic]
+    ) -> Union[
+        Variable,
+        list[Variable],
+    ]:
+        inputs = tuple(as_variable(x) for x in inputs)
+        # for type check
+        inputs = cast(tuple[Variable, ...], inputs)
 
-        xs = [x.data for x in inputs]
+        xs = [x.data for x in inputs if x.data is not None]
+        assert len(xs) == len(inputs)  # x.data is Noneのデータがないことを確認
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
             ys = (ys,)
+        assert isinstance(ys, tuple)
         outputs = [Variable(as_array(y)) for y in ys]
 
         if Config.enable_backprop:
@@ -140,10 +199,22 @@ class Function:
 
         return outputs if len(outputs) > 1 else outputs[0]
 
-    def forward(self, xs):
+    @abstractmethod
+    def forward(
+        self, *xs: Union[np.ndarray, np.generic]
+    ) -> Union[
+        Union[np.ndarray, np.generic],
+        tuple[Union[np.ndarray, np.generic], ...],
+    ]:
         raise NotImplementedError()
 
-    def backward(self, gys):
+    @abstractmethod
+    def backward(
+        self, gys: Union[Variable, np.ndarray, np.generic]
+    ) -> Union[
+        Union[np.ndarray, np.generic],
+        tuple[Union[np.ndarray, np.generic], ...],
+    ]:
         raise NotImplementedError()
 
 
@@ -161,7 +232,9 @@ class Add(Function):
 
 def add(x0, x1):
     x1 = as_array(x1)
-    return Add()(x0, x1)
+    out = Add()(x0, x1)
+    assert isinstance(out, Variable)
+    return out
 
 
 class Mul(Function):
@@ -176,7 +249,9 @@ class Mul(Function):
 
 def mul(x0, x1):
     x1 = as_array(x1)
-    return Mul()(x0, x1)
+    out = Mul()(x0, x1)
+    assert isinstance(out, Variable)
+    return out
 
 
 class Neg(Function):
@@ -188,7 +263,9 @@ class Neg(Function):
 
 
 def neg(x):
-    return Neg()(x)
+    out = Neg()(x)
+    assert isinstance(out, Variable)
+    return out
 
 
 class Sub(Function):
@@ -202,12 +279,16 @@ class Sub(Function):
 
 def sub(x0, x1):
     x1 = as_array(x1)
-    return Sub()(x0, x1)
+    out = Sub()(x0, x1)
+    assert isinstance(out, Variable)
+    return out
 
 
 def rsub(x0, x1):
     x1 = as_array(x1)
-    return Sub()(x1, x0)
+    out = Sub()(x1, x0)
+    assert isinstance(out, Variable)
+    return out
 
 
 class Div(Function):
@@ -218,18 +299,22 @@ class Div(Function):
     def backward(self, gy):
         x0, x1 = self.inputs[0].data, self.inputs[1].data
         gx0 = gy / x1
-        gx1 = gy * (-x0 / x1 ** 2)
+        gx1 = gy * (-x0 / x1**2)
         return gx0, gx1
 
 
 def div(x0, x1):
     x1 = as_array(x1)
-    return Div()(x0, x1)
+    out = Div()(x0, x1)
+    assert isinstance(out, Variable)
+    return out
 
 
 def rdiv(x0, x1):
     x1 = as_array(x1)
-    return Div()(x1, x0)
+    out = Div()(x1, x0)
+    assert isinstance(out, Variable)
+    return out
 
 
 class Pow(Function):
@@ -237,7 +322,7 @@ class Pow(Function):
         self.c = c
 
     def forward(self, x):
-        y = x ** self.c
+        y = x**self.c
         return y
 
     def backward(self, gy):
@@ -249,7 +334,9 @@ class Pow(Function):
 
 
 def pow(x, c):
-    return Pow(c)(x)
+    out = Pow(c)(x)
+    assert isinstance(out, Variable)
+    return out
 
 
 def setup_variable():
