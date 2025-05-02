@@ -4,7 +4,7 @@ import abc
 import contextlib
 import weakref
 from abc import abstractmethod
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, TypeVar, Union, cast, overload
 
 import numpy as np
 
@@ -163,12 +163,27 @@ def as_variable(obj: Any) -> Variable:
     return Variable(obj)
 
 
-def as_array(x: Union[np.generic, np.ndarray]) -> np.ndarray:
+ArrayOrVar = TypeVar("ArrayOrVar", np.ndarray, Variable)
+
+
+@overload
+def as_array(x: Union[np.generic, int, float]) -> np.ndarray: ...
+
+
+@overload
+def as_array(x: ArrayOrVar) -> ArrayOrVar: ...
+
+
+# HACK: 3.10以上では、TypeGuardを使った方がよりかっこよく定義できそう
+# そもそもこの関数がちょっと微妙な気がする。Variableに拡張した時点で何かをした方が良かった気がする。
+def as_array(
+    x: Union[np.generic, int, float, ArrayOrVar],
+) -> Union[np.ndarray, ArrayOrVar]:
     if np.isscalar(x):
         return np.array(x)
     else:
-        assert isinstance(x, np.ndarray)  # for type checking
-    return x
+        assert isinstance(x, (np.ndarray, Variable))
+        return x
 
 
 class Function(abc.ABC):
@@ -182,7 +197,7 @@ class Function(abc.ABC):
         # for type check
         inputs = cast(tuple[Variable, ...], inputs)
 
-        xs = [x.data for x in inputs if x.data is not None]
+        xs = [x.data for x in inputs if isinstance(x.data, np.ndarray)]
         assert len(xs) == len(inputs)  # x.data is Noneのデータがないことを確認
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
