@@ -1,10 +1,17 @@
 # %%
-if '__file__' in globals():
-    import os, sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import numpy as np
+import os
+import sys
+from pathlib import Path
+
+if "__file__" in globals():
+    sys.path.append(str((Path(__file__).parent / "..").resolve()))
+else:
+    sys.path.append(str(Path(os.getcwd(), "..").resolve()))
 import math
-from dezero import Variable, Function
+
+import numpy as np
+
+from dezero.core_simple import Function, Variable
 from dezero.utils import plot_dot_graph
 
 
@@ -21,7 +28,7 @@ class Sin(Function):
 
 
 # %%
-def sin(x):
+def sin(x: Variable) -> Variable:
     return Sin()(x)
 
 
@@ -29,16 +36,18 @@ def sin(x):
 x = Variable(np.array(np.pi / 4))
 y = sin(x)
 y.backward()
-print('--- original sin ---')
+print("--- original sin ---")
 print(y.data)
 print(x.grad)
 
 
 # %%
-def my_sin(x, threshold=0.0001):
+def my_sin(x: Variable, threshold=0.0001) -> Variable:
+    """テイラー展開でsinを求める"""
     y = 0
     for i in range(100000):
-        c = (-1) ** i / math.factorial(2 * i + 1)
+        c: int = (-1) ** i / math.factorial(2 * i + 1)
+        # i回目に追加する項
         t = c * x ** (2 * i + 1)
         y = y + t
         if abs(t.data) < threshold:
@@ -50,11 +59,16 @@ def my_sin(x, threshold=0.0001):
 x = Variable(np.array(np.pi / 4))
 y = my_sin(x)  # , threshold=1e-150)
 y.backward()
-print('--- approximate sin ---')
+print("--- approximate sin ---")
 print(y.data)
 print(x.grad)
 
 # %%
-x.name = 'x'
-y.name = 'y'
-plot_dot_graph(y, verbose=False, to_file='my_sin.png')
+x.name = "x"
+y.name = "y"
+plot_dot_graph(y, verbose=False, to_file="my_sin.png")
+
+# %% [markdown]
+# `threshold` を変えることで計算グラフの複雑さを変えることができる。
+#
+# if・for文で計算グラフの複雑さを定義できる。Define-by-Runの使いやすさ。
