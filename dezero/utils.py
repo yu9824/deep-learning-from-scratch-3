@@ -5,13 +5,13 @@ import urllib.request
 
 import numpy as np
 
-from dezero import Variable, as_variable, cuda
+from dezero import Function, Variable, as_variable, cuda
 
 
 # =============================================================================
 # Visualize for computational graph
 # =============================================================================
-def _dot_var(v, verbose=False):
+def _dot_var(v: Variable, verbose: bool = False) -> str:
     dot_var = '{} [label="{}", color=orange, style=filled]\n'
 
     name = "" if v.name is None else v.name
@@ -23,7 +23,7 @@ def _dot_var(v, verbose=False):
     return dot_var.format(id(v), name)
 
 
-def _dot_func(f):
+def _dot_func(f: Function) -> str:
     # for function
     dot_func = '{} [label="{}", color=lightblue, style=filled, shape=box]\n'
     ret = dot_func.format(id(f), f.__class__.__name__)
