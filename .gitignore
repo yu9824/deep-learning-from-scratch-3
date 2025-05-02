@@ -1,12 +1,12 @@
 .DS_Store
 *~
-sample.png
 
 build/
 dist/
 dezero.egg-info/
 tmp/
 
+*.png
 *.dot
 *.json
 src/.idea/*
