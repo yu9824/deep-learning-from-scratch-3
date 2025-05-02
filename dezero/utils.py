@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import subprocess
 import urllib.request
@@ -78,7 +79,7 @@ def get_dot_graph(output, verbose=True):
     return "digraph g {\n" + txt + "}"
 
 
-def plot_dot_graph(output, verbose=True, to_file="graph.png"):
+def plot_dot_graph(output: Variable, verbose=True, to_file="graph.png"):
     dot_graph = get_dot_graph(output, verbose)
 
     tmp_dir = os.path.join(os.path.expanduser("~"), ".dezero")
@@ -94,12 +95,12 @@ def plot_dot_graph(output, verbose=True, to_file="graph.png"):
     subprocess.run(cmd, shell=True)
 
     # Return the image as a Jupyter Image object, to be displayed in-line.
-    try:
+    if importlib.util.find_spec("IPython"):
         from IPython import display
 
         return display.Image(filename=to_file)
-    except:
-        pass
+    else:
+        return
 
 
 # =============================================================================
