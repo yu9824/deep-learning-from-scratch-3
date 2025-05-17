@@ -1,10 +1,16 @@
 # %%
-if '__file__' in globals():
-    import os, sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import os
+import sys
+from pathlib import Path
+
 import numpy as np
-from dezero import Variable
+
+if "__file__" in globals():
+    sys.path.append(str((Path(__file__).parent / "..").resolve()))
+else:
+    sys.path.append(str(Path(os.getcwd(), "..").resolve()))
 import dezero.functions as F
+from dezero import Variable
 
 # %%
 x = Variable(np.array([[1, 2, 3], [4, 5, 6]]))
