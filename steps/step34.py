@@ -1,11 +1,18 @@
 # %%
-if '__file__' in globals():
-    import os, sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import numpy as np
+import os
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-from dezero import Variable
+import numpy as np
+
+if "__file__" in globals():
+    sys.path.append(str((Path(__file__).parent / "..").resolve()))
+else:
+    sys.path.append(str(Path(os.getcwd(), "..").resolve()))
+
 import dezero.functions as F
+from dezero import Variable
 
 # %%
 x = Variable(np.linspace(-7, 7, 200))
@@ -26,5 +33,5 @@ for i in range(3):
 labels = ["y=sin(x)", "y'", "y''", "y'''"]
 for i, v in enumerate(logs):
     plt.plot(x.data, logs[i], label=labels[i])
-plt.legend(loc='lower right')
+plt.legend(loc="lower right")
 plt.show()
