@@ -1,6 +1,8 @@
-import weakref
-import numpy as np
 import contextlib
+import weakref
+
+import numpy as np
+
 import dezero
 
 
@@ -23,20 +25,22 @@ def using_config(name, value):
 
 
 def no_grad():
-    return using_config('enable_backprop', False)
+    return using_config("enable_backprop", False)
 
 
 def test_mode():
-    return using_config('train', False)
+    return using_config("train", False)
+
 
 # =============================================================================
 # Variable / Function
 # =============================================================================
 try:
     import cupy
+
     array_types = (np.ndarray, cupy.ndarray)
 except ImportError:
-    array_types = (np.ndarray)
+    array_types = np.ndarray
 
 
 class Variable:
@@ -45,7 +49,7 @@ class Variable:
     def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, array_types):
-                raise TypeError('{} is not supported'.format(type(data)))
+                raise TypeError("{} is not supported".format(type(data)))
 
         self.data = data
         self.name = name
@@ -74,9 +78,9 @@ class Variable:
 
     def __repr__(self):
         if self.data is None:
-            return 'variable(None)'
-        p = str(self.data).replace('\n', '\n' + ' ' * 9)
-        return 'variable(' + p + ')'
+            return "variable(None)"
+        p = str(self.data).replace("\n", "\n" + " " * 9)
+        return "variable(" + p + ")"
 
     def set_creator(self, func):
         self.creator = func
@@ -107,7 +111,7 @@ class Variable:
             f = funcs.pop()
             gys = [output().grad for output in f.outputs]  # output is weakref
 
-            with using_config('enable_backprop', create_graph):
+            with using_config("enable_backprop", create_graph):
                 gxs = f.backward(*gys)
                 if not isinstance(gxs, tuple):
                     gxs = (gxs,)
@@ -293,7 +297,7 @@ class Div(Function):
     def backward(self, gy):
         x0, x1 = self.inputs
         gx0 = gy / x1
-        gx1 = gy * (-x0 / x1 ** 2)
+        gx1 = gy * (-x0 / x1**2)
         if x0.shape != x1.shape:  # for broadcast
             gx0 = dezero.functions.sum_to(gx0, x0.shape)
             gx1 = dezero.functions.sum_to(gx1, x1.shape)
@@ -315,11 +319,11 @@ class Pow(Function):
         self.c = c
 
     def forward(self, x):
-        y = x ** self.c
+        y = x**self.c
         return y
 
     def backward(self, gy):
-        x, = self.inputs
+        (x,) = self.inputs
         c = self.c
         gx = c * x ** (c - 1) * gy
         return gx
