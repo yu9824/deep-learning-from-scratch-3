@@ -1,5 +1,8 @@
+import abc
 import contextlib
+import importlib.util
 import weakref
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -35,27 +38,32 @@ def test_mode():
 # =============================================================================
 # Variable / Function
 # =============================================================================
-try:
+if importlib.util.find_spec("cupy") is not None:
     import cupy
 
     array_types = (np.ndarray, cupy.ndarray)
-except ImportError:
-    array_types = np.ndarray
+    _ArrayType = Union[np.ndarray, cupy.ndarray]
+else:
+    array_types = (np.ndarray,)  # type: ignore[assignment]
+    _ArrayType = np.ndarray  # type: ignore[misc]
+
+# To escape 'reportInvalidTypeForm'
+ArrayType = _ArrayType
 
 
 class Variable:
     __array_priority__ = 200
 
-    def __init__(self, data, name=None):
+    def __init__(self, data: Optional[ArrayType], name=None):
         if data is not None:
             if not isinstance(data, array_types):
                 raise TypeError("{} is not supported".format(type(data)))
 
         self.data = data
         self.name = name
-        self.grad = None
-        self.creator = None
-        self.generation = 0
+        self.grad: Optional[Variable] = None
+        self.creator: Optional["Function"] = None
+        self.generation: int = 0
 
     @property
     def shape(self):
@@ -82,7 +90,7 @@ class Variable:
         p = str(self.data).replace("\n", "\n" + " " * 9)
         return "variable(" + p + ")"
 
-    def set_creator(self, func):
+    def set_creator(self, func: "Function"):
         self.creator = func
         self.generation = func.generation + 1
 
@@ -97,10 +105,10 @@ class Variable:
             xp = dezero.cuda.get_array_module(self.data)
             self.grad = Variable(xp.ones_like(self.data))
 
-        funcs = []
-        seen_set = set()
+        funcs: list[Function] = []  # type: ignore[annotation-unchecked]
+        seen_set: set[Function] = set()  # type: ignore[annotation-unchecked]
 
-        def add_func(f):
+        def add_func(f: "Function"):
             if f not in seen_set:
                 funcs.append(f)
                 seen_set.add(f)
@@ -167,26 +175,76 @@ class Variable:
         if self.data is not None:
             self.data = dezero.cuda.as_cupy(self.data)
 
+    def __add__(self, *args) -> "Variable":
+        return add(self, *args)
+
+    def __radd__(self, *args) -> "Variable":
+        return add(self, *args)
+
+    def __mul__(self, *args) -> "Variable":
+        return mul(self, *args)
+
+    def __rmul__(self, *args) -> "Variable":
+        return mul(self, *args)
+
+    def __neg__(self, *args) -> "Variable":
+        return neg(self, *args)
+
+    def __sub__(self, *args) -> "Variable":
+        return sub(self, *args)
+
+    def __rsub__(self, *args) -> "Variable":
+        return rsub(self, *args)
+
+    def __truediv__(self, *args) -> "Variable":
+        return div(self, *args)
+
+    def __rtruediv__(self, *args) -> "Variable":
+        return rdiv(self, *args)
+
+    def __pow__(self, *args) -> "Variable":
+        return pow(self, *args)
+
+    def __getitem__(self, *args):
+        return dezero.functions.get_item(self, *args)
+
+    def matmul(self, *args) -> "Variable":
+        return dezero.functions.matmul(self, *args)
+
+    def dot(self, *args) -> "Variable":
+        return dezero.functions.matmul(self, *args)
+
+    def max(self, *args) -> "Variable":
+        return dezero.functions.max(self, *args)
+
+    def min(self, *args) -> "Variable":
+        return dezero.functions.min(self, *args)
+
 
 class Parameter(Variable):
     pass
 
 
-def as_variable(obj):
+def as_variable(obj: Any) -> Variable:
     if isinstance(obj, Variable):
         return obj
     return Variable(obj)
 
 
-def as_array(x, array_module=np):
+def as_array(x: Any, array_module=np) -> ArrayType:
     if np.isscalar(x):
         return array_module.array(x)
     return x
 
 
-class Function:
-    def __call__(self, *inputs):
-        inputs = [as_variable(x) for x in inputs]
+class Function(abc.ABC):
+    def __call__(
+        self, *inputs: Union[Variable, ArrayType]
+    ) -> Union[
+        Variable,
+        list[Variable],
+    ]:
+        inputs = tuple(as_variable(x) for x in inputs)
 
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
@@ -195,7 +253,7 @@ class Function:
         outputs = [Variable(as_array(y)) for y in ys]
 
         if Config.enable_backprop:
-            self.generation = max([x.generation for x in inputs])
+            self.generation = max(x.generation for x in inputs)  # type: ignore[union-attr]
             for output in outputs:
                 output.set_creator(self)
             self.inputs = inputs
@@ -203,10 +261,22 @@ class Function:
 
         return outputs if len(outputs) > 1 else outputs[0]
 
-    def forward(self, xs):
+    @abc.abstractmethod
+    def forward(
+        self, *xs: ArrayType
+    ) -> Union[
+        ArrayType,
+        tuple[ArrayType, ...],
+    ]:
         raise NotImplementedError()
 
-    def backward(self, gys):
+    @abc.abstractmethod
+    def backward(
+        self, gys: Union[Variable, ArrayType]
+    ) -> Union[
+        ArrayType,
+        tuple[ArrayType, ...],
+    ]:
         raise NotImplementedError()
 
 
@@ -334,19 +404,4 @@ def pow(x, c):
 
 
 def setup_variable():
-    Variable.__add__ = add
-    Variable.__radd__ = add
-    Variable.__mul__ = mul
-    Variable.__rmul__ = mul
-    Variable.__neg__ = neg
-    Variable.__sub__ = sub
-    Variable.__rsub__ = rsub
-    Variable.__truediv__ = div
-    Variable.__rtruediv__ = rdiv
-    Variable.__pow__ = pow
-    Variable.__getitem__ = dezero.functions.get_item
-
-    Variable.matmul = dezero.functions.matmul
-    Variable.dot = dezero.functions.matmul
-    Variable.max = dezero.functions.max
-    Variable.min = dezero.functions.min
+    pass
